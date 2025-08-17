@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Džeparac - Štedna aplikacija za decu</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen active">
+            <div class="welcome-container">
+                <div class="logo">
+                    <i class="fas fa-piggy-bank"></i>
+                    <h1>Džeparac</h1>
+                    <p>Štedna aplikacija za decu</p>
+                </div>
+                
+                <div class="welcome-options">
+                    <h2>Dobrodošli!</h2>
+                    <p>Izaberite opciju:</p>
+                    
+                    <button class="btn-primary welcome-btn" onclick="showSetupScreen()">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Kreiraj novi nalog</span>
+                        <small>Prvo korišćenje aplikacije</small>
+                    </button>
+                    
+                    <button class="btn-secondary welcome-btn" onclick="showLoginScreen()">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Prijaviť se</span>
+                        <small>Već imam nalog</small>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Family Login Screen -->
+        <div id="familyLoginScreen" class="screen">
+            <div class="login-container">
+                <div class="logo">
+                    <i class="fas fa-piggy-bank"></i>
+                    <h1>Prijava</h1>
+                </div>
+                
+                <div class="login-form">
+                    <div class="input-group">
+                        <label>ID porodice</label>
+                        <input type="text" id="familyIdInput" placeholder="Unesite ID vaše porodice">
+                        <small class="input-help">ID porodice možete pronaći u podešavanjima aplikacije</small>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>PIN za roditelje</label>
+                        <input type="password" id="loginPinInput" maxlength="4" placeholder="****">
+                    </div>
+                    
+                    <button class="btn-primary" onclick="loginFamily()">Prijaviť se</button>
+                    <button class="btn-secondary" onclick="showWelcomeScreen()">Nazad</button>
+                    
+                    <div class="login-help">
+                        <p><strong>Gde mogu pronaći ID porodice?</strong></p>
+                        <p>ID porodice se nalazi u roditeljskom panelu → Podešavanja → ID porodice</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Initial Setup Screen -->
+        <div id="setupScreen" class="screen">
+            <div class="setup-container">
+                <div class="logo">
+                    <i class="fas fa-piggy-bank"></i>
+                    <h1>Džeparac</h1>
+                    <p>Štedna aplikacija za decu</p>
+                </div>
+                
+                <div class="setup-form">
+                    <h2>Početno podešavanje</h2>
+                    
+                    <div class="input-group">
+                        <label>Jezik i valuta</label>
+                        <select id="languageCurrency">
+                            <option value="sr-RSD">Srpski - RSD</option>
+                            <option value="hr-EUR">Hrvatski - EUR</option>
+                            <option value="bs-KM">Bosanski - KM</option>
+                            <option value="me-EUR">Crnogorski - EUR</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>PIN za roditelje (4 cifre)</label>
+                        <input type="password" id="parentPin" maxlength="4" pattern="[0-9]{4}" value="1234" placeholder="1234">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <input type="checkbox" id="negotiationMode">
+                            Omogući pregovaranje o zadacima
+                        </label>
+                    </div>
+                    
+                    <div class="setup-kids-section">
+                        <h3>Dodaj decu</h3>
+                        <div class="setup-kids-list" id="setupKidsList">
+                            <!-- Kids added during setup will appear here -->
+                        </div>
+                        
+                        <div class="add-kid-form">
+                            <div class="input-row">
+                                <input type="text" id="setupKidName" placeholder="Ime deteta" class="kid-name-input">
+                                <button type="button" class="btn-add-kid" onclick="addKidToSetup()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <p class="setup-note">Možete dodati decu i kasnije kroz roditeljski panel</p>
+                    </div>
+                    
+                    <button class="btn-primary" onclick="completeSetup()">Završi podešavanje</button>
+                    <button class="btn-secondary" onclick="showWelcomeScreen()">Nazad</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Menu Screen -->
+        <div id="mainScreen" class="screen">
+            <div class="main-container">
+                <div class="logo">
+                    <i class="fas fa-piggy-bank"></i>
+                    <h1>Džeparac</h1>
+                </div>
+                
+                <div class="menu-buttons">
+                    <button class="menu-btn kid-btn" onclick="showKidView()">
+                        <i class="fas fa-child"></i>
+                        <span>Dete</span>
+                    </button>
+                    
+                    <button class="menu-btn parent-btn" onclick="showParentLogin()">
+                        <i class="fas fa-user-tie"></i>
+                        <span>Roditelj</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent PIN Login -->
+        <div id="parentLoginScreen" class="screen">
+            <div class="login-container">
+                <h2>Unesite PIN</h2>
+                <div class="pin-input">
+                    <input type="password" id="pinInput" maxlength="4" placeholder="****">
+                </div>
+                <button class="btn-primary" onclick="verifyPin()">Potvrdi</button>
+                <button class="btn-secondary" onclick="showMainScreen()">Nazad</button>
+            </div>
+        </div>
+
+        <!-- Kid Selection Screen -->
+        <div id="kidSelectionScreen" class="screen">
+            <div class="selection-container">
+                <h2>Izaberi svoje ime</h2>
+                <div id="kidsList" class="kids-list">
+                    <!-- Kids will be populated here -->
+                </div>
+                <button class="btn-secondary" onclick="showMainScreen()">Nazad</button>
+            </div>
+        </div>
+
+        <!-- Kid Dashboard -->
+        <div id="kidDashboard" class="screen">
+            <div class="header">
+                <div class="user-info">
+                    <i class="fas fa-child"></i>
+                    <span id="currentKidName">Marko</span>
+                </div>
+                <div class="balance">
+                    <span id="kidBalance">0</span> <span id="currencySymbol">RSD</span>
+                </div>
+                <button class="logout-btn" onclick="showMainScreen()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+
+            <div class="goal-section" id="goalSection">
+                <div class="goal-card" onclick="showGoalModal()">
+                    <i class="fas fa-target"></i>
+                    <div class="goal-info">
+                        <h3>Moj cilj</h3>
+                        <p id="goalName">Dodaj cilj</p>
+                        <div class="goal-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="goalProgress"></div>
+                            </div>
+                            <span id="goalAmount">0 / 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Dostupni zadaci</h3>
+                <div id="availableChores" class="chores-list">
+                    <!-- Available chores will be populated here -->
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Moji zadaci</h3>
+                <div id="myChores" class="chores-list">
+                    <!-- My chores will be populated here -->
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Istorija</h3>
+                <div id="kidHistory" class="history-list">
+                    <!-- History will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Dashboard -->
+        <div id="parentDashboard" class="screen">
+            <div class="header">
+                <div class="user-info">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Roditelj</span>
+                </div>
+                <button class="logout-btn" onclick="showMainScreen()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+
+            <div class="parent-tabs">
+                <button class="tab-btn active" onclick="showTab('chores')">Zadaci</button>
+                <button class="tab-btn" onclick="showTab('kids')">Deca</button>
+                <button class="tab-btn" onclick="showTab('history')">Istorija</button>
+                <button class="tab-btn" onclick="showTab('settings')">Podešavanja</button>
+            </div>
+
+            <!-- Chores Tab -->
+            <div id="choresTab" class="tab-content active">
+                <div class="section-header">
+                    <h3>Upravljanje zadacima</h3>
+                    <button class="btn-primary" onclick="showAddChoreModal()">
+                        <i class="fas fa-plus"></i> Dodaj zadatak
+                    </button>
+                </div>
+                <div id="parentChoresList" class="parent-chores-list">
+                    <!-- Parent chores will be populated here -->
+                </div>
+            </div>
+
+            <!-- Kids Tab -->
+            <div id="kidsTab" class="tab-content">
+                <div class="section-header">
+                    <h3>Upravljanje decom</h3>
+                    <button class="btn-primary" onclick="showAddKidModal()">
+                        <i class="fas fa-plus"></i> Dodaj dete
+                    </button>
+                </div>
+                <div id="kidsList" class="kids-management-list">
+                    <!-- Kids management will be populated here -->
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="historyTab" class="tab-content">
+                <h3>Istorija transakcija</h3>
+                <div id="parentHistory" class="history-list">
+                    <!-- History will be populated here -->
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settingsTab" class="tab-content">
+                <h3>Podešavanja</h3>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <label>ID porodice</label>
+                        <div class="family-id-display">
+                            <input type="text" id="familyIdDisplay" readonly>
+                            <button class="btn-secondary btn-small" onclick="copyFamilyId()">
+                                <i class="fas fa-copy"></i> Kopiraj
+                            </button>
+                        </div>
+                        <small class="input-help">Podelite ovaj ID sa članovima porodice za prijavu na drugim uređajima</small>
+                    </div>
+                    <div class="setting-item">
+                        <label>Jezik i valuta</label>
+                        <select id="settingsLanguageCurrency">
+                            <option value="sr-RSD">Srpski - RSD</option>
+                            <option value="hr-EUR">Hrvatski - EUR</option>
+                            <option value="bs-KM">Bosanski - KM</option>
+                            <option value="me-EUR">Crnogorski - EUR</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="settingsNegotiation">
+                            Omogući pregovaranje o zadacima
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Promeni PIN</label>
+                        <input type="password" id="newPin" maxlength="4" placeholder="Novi PIN">
+                        <button class="btn-secondary" onclick="changePin()">Promeni</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        
+        <!-- Add Chore Modal -->
+        <div id="addChoreModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Dodaj novi zadatak</h3>
+                    <button class="close-btn" onclick="closeModal('addChoreModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label>Opis zadatka</label>
+                        <textarea id="choreDescription" placeholder="Operi suđe, usisaj sobu..."></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Vrednost</label>
+                        <input type="number" id="choreValue" placeholder="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Rok</label>
+                        <input type="date" id="choreDeadline">
+                    </div>
+                    <div class="input-group">
+                        <label>Dodeli</label>
+                        <select id="choreAssignment">
+                            <option value="open">Otvori za nadmetanje</option>
+                            <!-- Kids will be populated here -->
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('addChoreModal')">Otkaži</button>
+                    <button class="btn-primary" onclick="addChore()">Dodaj zadatak</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Kid Modal -->
+        <div id="addKidModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Dodaj dete</h3>
+                    <button class="close-btn" onclick="closeModal('addKidModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label>Ime deteta</label>
+                        <input type="text" id="kidName" placeholder="Marko">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('addKidModal')">Otkaži</button>
+                    <button class="btn-primary" onclick="addKid()">Dodaj dete</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goal Modal -->
+        <div id="goalModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Postavi cilj</h3>
+                    <button class="close-btn" onclick="closeModal('goalModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label>Šta želiš da kupiš?</label>
+                        <input type="text" id="goalNameInput" placeholder="Novi bicikl">
+                    </div>
+                    <div class="input-group">
+                        <label>Koliko košta?</label>
+                        <input type="number" id="goalAmountInput" placeholder="15000">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('goalModal')">Otkaži</button>
+                    <button class="btn-primary" onclick="setGoal()">Postavi cilj</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Negotiation Modal -->
+        <div id="negotiationModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Pregovaranje</h3>
+                    <button class="close-btn" onclick="closeModal('negotiationModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="negotiation-info">
+                        <p><strong>Zadatak:</strong> <span id="negTaskDescription"></span></p>
+                        <p><strong>Trenutna ponuda:</strong> <span id="negCurrentOffer"></span></p>
+                        <p><strong>Trenutni rok:</strong> <span id="negCurrentDeadline"></span></p>
+                    </div>
+                    <div class="input-group">
+                        <label>Tvoja ponuda</label>
+                        <input type="number" id="negNewValue" placeholder="150">
+                    </div>
+                    <div class="input-group">
+                        <label>Tvoj predlog roka</label>
+                        <input type="date" id="negNewDeadline">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="acceptOffer()">Prihvati ponudu</button>
+                    <button class="btn-primary" onclick="makeCounterOffer()">Pošalji kontrapredlog</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Negotiation Modal -->
+        <div id="parentNegotiationModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Roditeljsko pregovaranje</h3>
+                    <button class="close-btn" onclick="closeModal('parentNegotiationModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="negotiation-info">
+                        <p><strong>Zadatak:</strong> <span id="parentNegTaskDescription"></span></p>
+                        <p><strong>Pregovara sa:</strong> <span id="parentNegKidName"></span></p>
+                        <p><strong>Trenutna ponuda:</strong> <span id="parentNegCurrentOffer"></span></p>
+                        <p><strong>Trenutni rok:</strong> <span id="parentNegCurrentDeadline"></span></p>
+                    </div>
+                    <div class="input-group">
+                        <label>Vaša kontrapredlog ponuda</label>
+                        <input type="number" id="parentNegNewValue" placeholder="120">
+                    </div>
+                    <div class="input-group">
+                        <label>Vaš predlog roka</label>
+                        <input type="date" id="parentNegNewDeadline">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('parentNegotiationModal')">Otkaži</button>
+                    <button class="btn-primary" onclick="makeParentCounterOffer()">Pošalji kontrapredlog</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -93,6 +93,7 @@
                             <option value="hr-EUR">Hrvatski - EUR</option>
                             <option value="bs-KM">Bosanski - KM</option>
                             <option value="me-EUR">Crnogorski - EUR</option>
+                            <option value="mk-MKD">Makedonski - MKD</option>
                         </select>
                     </div>
                     
@@ -187,7 +188,7 @@
                 <div class="balance">
                     <span id="kidBalance">0</span> <span id="currencySymbol">RSD</span>
                 </div>
-                <button class="logout-btn" onclick="showMainScreen()">
+                <button class="logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
@@ -222,6 +223,13 @@
                 </div>
             </div>
 
+            <div class="family-stats-section" id="familyStatsSection" style="display: none;">
+                <h3>Porodična statistika</h3>
+                <div id="familyStatsContainer" class="family-stats-container">
+                    <!-- Family statistics will be populated here -->
+                </div>
+            </div>
+
             <div class="section">
                 <h3>Istorija</h3>
                 <div id="kidHistory" class="history-list">
@@ -237,7 +245,7 @@
                     <i class="fas fa-user-tie"></i>
                     <span>Roditelj</span>
                 </div>
-                <button class="logout-btn" onclick="showMainScreen()">
+                <button class="logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
@@ -304,6 +312,7 @@
                             <option value="hr-EUR">Hrvatski - EUR</option>
                             <option value="bs-KM">Bosanski - KM</option>
                             <option value="me-EUR">Crnogorski - EUR</option>
+                            <option value="mk-MKD">Makedonski - MKD</option>
                         </select>
                     </div>
                     <div class="setting-item">
@@ -316,6 +325,15 @@
                         <label>Promeni PIN</label>
                         <input type="password" id="newPin" maxlength="4" placeholder="Novi PIN">
                         <button class="btn-secondary" onclick="changePin()">Promeni</button>
+                    </div>
+                    <div class="setting-item">
+                        <label>Odjava</label>
+                        <div class="logout-options">
+                            <button class="btn-warning" onclick="logoutCompletely()">
+                                <i class="fas fa-sign-out-alt"></i> Potpuna odjava
+                            </button>
+                        </div>
+                        <small class="input-help">Potpuna odjava će obrisati sačuvane podatke o porodici sa ovog uređaja</small>
                     </div>
                 </div>
             </div>
@@ -351,6 +369,21 @@
                             <option value="open">Otvori za nadmetanje</option>
                             <!-- Kids will be populated here -->
                         </select>
+                    </div>
+                    <div class="input-group">
+                        <label>
+                            <input type="checkbox" id="choreRecurring" onchange="toggleRecurringOptions()">
+                            Ponavljajući zadatak
+                        </label>
+                    </div>
+                    <div class="input-group" id="recurringFrequencyContainer" style="display: none;">
+                        <label>Učestalost ponavljanja</label>
+                        <select id="recurringFrequency">
+                            <option value="daily">Dnevno</option>
+                            <option value="weekly">Nedeljno</option>
+                            <option value="monthly">Mesečno</option>
+                        </select>
+                        <small class="input-help">Zadatak će se automatski ponoviti nakon što bude završen i plaćen</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -423,6 +456,12 @@
                         <p><strong>Trenutna ponuda:</strong> <span id="negCurrentOffer"></span></p>
                         <p><strong>Trenutni rok:</strong> <span id="negCurrentDeadline"></span></p>
                     </div>
+                    
+                    <!-- Current negotiations display for open bidding -->
+                    <div id="currentNegotiations" class="current-negotiations">
+                        <!-- Current negotiations will be populated here -->
+                    </div>
+                    
                     <div class="input-group">
                         <label>Tvoja ponuda</label>
                         <input type="number" id="negNewValue" placeholder="150">
@@ -467,6 +506,91 @@
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="closeModal('parentNegotiationModal')">Otkaži</button>
                     <button class="btn-primary" onclick="makeParentCounterOffer()">Pošalji kontrapredlog</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Bidding Modal -->
+        <div id="parentBiddingModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Pregled nadmetanja</h3>
+                    <button class="close-btn" onclick="closeModal('parentBiddingModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="negotiation-info">
+                        <p><strong>Zadatak:</strong> <span id="parentBidTaskDescription"></span></p>
+                        <p><strong>Originalna ponuda:</strong> <span id="parentBidOriginalValue"></span></p>
+                        <p><strong>Originalni rok:</strong> <span id="parentBidOriginalDeadline"></span></p>
+                    </div>
+                    
+                    <!-- Current negotiations display for parent bidding -->
+                    <div id="parentBiddingNegotiations" class="parent-bidding-negotiations">
+                        <!-- Parent bidding negotiations will be populated here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('parentBiddingModal')">Zatvori</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Specific Counter Modal -->
+        <div id="specificCounterModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Kontrapredlog za <span id="specificCounterKidName"></span></h3>
+                    <button class="close-btn" onclick="closeModal('specificCounterModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="negotiation-info">
+                        <p><strong>Zadatak:</strong> <span id="specificCounterTaskDescription"></span></p>
+                        <p><strong>Trenutna ponuda:</strong> <span id="specificCounterCurrentOffer"></span></p>
+                        <p><strong>Trenutni rok:</strong> <span id="specificCounterCurrentDeadline"></span></p>
+                    </div>
+                    <div class="input-group">
+                        <label>Vaš kontrapredlog</label>
+                        <input type="number" id="specificCounterNewValue" placeholder="120">
+                    </div>
+                    <div class="input-group">
+                        <label>Vaš predlog roka</label>
+                        <input type="date" id="specificCounterNewDeadline">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('specificCounterModal')">Otkaži</button>
+                    <button class="btn-primary" onclick="makeSpecificCounterOffer()">Pošalji kontrapredlog</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bonus Modal -->
+        <div id="bonusModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Isplati bonus za <span id="bonusKidName"></span></h3>
+                    <button class="close-btn" onclick="closeModal('bonusModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label>Iznos bonusa</label>
+                        <input type="number" id="bonusAmount" placeholder="50" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Razlog za bonus</label>
+                        <textarea id="bonusReason" placeholder="Odličan rad u školi, pomoć oko kuće..." rows="3"></textarea>
+                        <small class="input-help">Objasnite detetu zašto je zaslužilo bonus</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('bonusModal')">Otkaži</button>
+                    <button class="btn-primary" onclick="payBonus()">Isplati bonus</button>
                 </div>
             </div>
         </div>
